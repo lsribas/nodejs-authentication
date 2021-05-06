@@ -135,7 +135,7 @@ router.post('/reset', async function (req, res) {
         }
 
         if(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/i.test(identification)) {
-            user = await User.findOne({ email: identification }).select('+recoveryCode').select('+recoveryExpiration');
+            user = await User.findOne({ email: identification }).select('+password').select('+recoveryCode').select('+recoveryExpiration');
     
             if(!user) {
                 return res.status(400).send({
@@ -144,7 +144,7 @@ router.post('/reset', async function (req, res) {
                 })
             }
         } else {
-            user = await User.findOne({ username: identification }).select('+recoveryCode').select('+recoveryExpiration');
+            user = await User.findOne({ username: identification }).select('+password').select('+recoveryCode').select('+recoveryExpiration');
     
             if(!user) {
                 return res.status(400).send({
