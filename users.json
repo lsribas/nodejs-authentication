@@ -1,10 +1,10 @@
 [
     {
-        "user": "pedrin",
-        "pass": "pedrin123"
+        "username": "pedrin",
+        "password": "pedrin123"
     },
     {
-        "user": "joaozin",
-        "pass": "joaozin123"
+        "username": "joaozin",
+        "password": "joaozin123"
     }
 ]

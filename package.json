@@ -2,7 +2,7 @@
   "name": "nodejs-authentication",
   "version": "1.0.0",
   "description": "A simple authentication mechanism build with nodejs.",
-  "main": "login.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -17,7 +17,12 @@
   },
   "homepage": "https://github.com/desastrad0/nodejs-authentication#readme",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "express": "^4.17.1",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^5.12.7",
+    "nodemailer": "^6.6.0",
+    "nodemailer-express-handlebars": "^4.0.0",
     "nodemon": "^2.0.7"
   }
 }
