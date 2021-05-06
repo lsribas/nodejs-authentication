@@ -28,8 +28,6 @@ module.exports = (req, res, next) => {
         })
       }
 
-      console.log(jwt)
-
     if (jwt.type != 'login') {
         return res.status(401).json({
             status: "Unauthorized",
