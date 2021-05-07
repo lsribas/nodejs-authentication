@@ -37,66 +37,74 @@ function containKeys(obj, arr) {
  };
 
 router.post('/login', async function (req, res) {
-    const { identification, password } = req.body;
+    try {
+        const { identification, password } = req.body;
 
-    const contains = await containKeys(req.body, ['identification', 'password']);
+        const contains = await containKeys(req.body, ['identification', 'password']);
 
-    if(contains.length > 0) {
-        return res.status(400).json({
-            status: "Bad Request",
-            message: `Parameters [${contains.join(', ')}] are missing.`
-        })
-    }
-
-    if(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/i.test(identification)) {
-        user = await User.findOne({ email: identification }).select('+password');
-
-        if(!user) {
-            return res.status(401).json({
-                status: "Unauthorized",
-                message: "Username or password is incorrect."
+        if(contains.length > 0) {
+            return res.status(400).json({
+                status: "Bad Request",
+                message: `Parameters [${contains.join(', ')}] are missing.`
             })
         }
-    } else {
-        user = await User.findOne({ username: identification }).select('+password');
 
-        if(!user) {
-            return res.status(401).json({
-                status: "Unauthorized",
-                message: "Username or password is incorrect."
+        if(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/i.test(identification)) {
+            user = await User.findOne({ email: identification }).select('+password');
+
+            if(!user) {
+                return res.status(401).json({
+                    status: "Unauthorized",
+                    message: "Username or password is incorrect."
+                })
+            }
+        } else {
+            user = await User.findOne({ username: identification }).select('+password');
+
+            if(!user) {
+                return res.status(401).json({
+                    status: "Unauthorized",
+                    message: "Username or password is incorrect."
+                })
+            }
+        }
+
+        if(!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/i.test(password)) {
+            return res.status(400).send({
+                status: "Bad Request",
+                message: "Type a valid password. Minimum eight characters, at least one letter and one number."
             })
         }
-    }
 
-    if(!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/i.test(password)) {
-        return res.status(400).send({
-            status: "Bad Request",
-            message: "Type a valid password. Minimum eight characters, at least one letter and one number."
-        })
-    }
+        if(await bcrypt.compare(password, user.password)) {
+            if(user.emailConfirmed == false) {
+                return res.json({
+                    status: "OK",
+                    message: "Please, confirm your email before login."
+                });
+            };
 
-    if(await bcrypt.compare(password, user.password)) {
-        if(user.emailConfirmed == false) {
+            const token = generateToken({ id: user.id, password: user.password, type: 'login' }, 86400);
+
+            user.password = undefined;
+
             return res.json({
                 status: "OK",
-                message: "Please, confirm your email before login."
+                message: "Authenticated successfully.",
+                token: token
             });
-        };
-
-        user.password = undefined;
-
-        const token = generateToken({ id: user.id, type: 'login' }, 86400);
-
-        return res.json({
-            status: "OK",
-            message: "Authenticated successfully.",
-            token: token
+        } else {
+            return res.status(401).json({
+                status: "Unauthorized",
+                message: "Username or password is incorrect."
+            })
+        }
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({
+            status: "Internal Server Error",
+            message: "An internal error occurred."
         });
-    } else {
-        return res.status(401).json({
-            status: "Unauthorized",
-            message: "Username or password is incorrect."
-        })
     }
 });
 
@@ -157,13 +165,13 @@ router.post('/register', async function (req, res) {
             from: "email-confirmation@desastrad0.com",
             to: email,
             subject: "Email Confirmation",
-            text: `http://localhost/email/confirmate?token=${token}`
+            text: `To confirm your email click on the following link: http://localhost/email/confirm?token=${token}`
         });
 
         if(sended.response.includes('Ok')) {
             return res.json({
                 status: "OK",
-                message: "Registered successfully, confirm your e-mail."
+                message: "Registered successfully, confirm your email."
             });
         } else {
             return res.status(500).json({

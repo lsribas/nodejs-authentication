@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 const { secret } = require('../config/auth.json');
+const User = require('../database/user');
 
-module.exports = (req, res, next) => {
+module.exports = async (req, res, next) => {
   const auth = req.headers.authorization;
 
   if (!auth) {
@@ -20,7 +21,7 @@ module.exports = (req, res, next) => {
     })
   }
 
-  jwt.verify(authParts[1], secret, (err, jwt) => {
+  jwt.verify(authParts[1], secret, async (err, jwt) => {
     if (err) {
         return res.status(401).json({
             status: "Unauthorized",
@@ -35,7 +36,19 @@ module.exports = (req, res, next) => {
         })
       }
 
-    req.userId = jwt.id;
+    const _id = jwt.id;
+    const user = await User.findOne({ _id }).select('+password');
+
+    if(!user || jwt.password != user.password) {
+        return res.status(401).json({
+            status: "Unauthorized",
+            message: "Expired token."
+        })
+    }
+
+    user.password = undefined;
+
+    req.user = user;
     return next();
   });
 };

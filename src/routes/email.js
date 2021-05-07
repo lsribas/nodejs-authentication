@@ -48,72 +48,80 @@ function emailMask(email) {
 };
 
 router.post('/resend', async function (req, res) {
-    const { identification } = req.body;
+    try {
+        const { identification } = req.body;
 
-    const contains = await containKeys(req.body, ['identification']);
-    let user,
-        email;
+        const contains = await containKeys(req.body, ['identification']);
+        let user,
+            email;
 
-    if(contains.length > 0) {
-        return res.status(400).send({
-            status: "Bad Request",
-            message: `Parameters [${contains.join(', ')}] are missing.`
-        })
-    }
-
-    if(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/i.test(identification)) {
-        user = await User.findOne({ email: identification });
-
-        if(!user) {
+        if(contains.length > 0) {
             return res.status(400).send({
                 status: "Bad Request",
-                message: "Username/email isn't registered."
+                message: `Parameters [${contains.join(', ')}] are missing.`
             })
         }
 
-        email = user.email;
-    } else {
-        user = await User.findOne({ username: identification });
+        if(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/i.test(identification)) {
+            user = await User.findOne({ email: identification });
 
-        if(!user) {
-            return res.status(400).send({
-                status: "Bad Request",
-                message: "Username/email isn't registered."
+            if(!user) {
+                return res.status(400).send({
+                    status: "Bad Request",
+                    message: "Username/email isn't registered."
+                })
+            }
+
+            email = user.email;
+        } else {
+            user = await User.findOne({ username: identification });
+
+            if(!user) {
+                return res.status(400).send({
+                    status: "Bad Request",
+                    message: "Username/email isn't registered."
+                })
+            }
+
+            email = emailMask(user.email);
+        }
+
+        if(user.emailConfirmed == true) {
+            return res.status(200).json({
+                status: "OK",
+                message: "Email already confirmed."
             })
         }
 
-        email = emailMask(user.email);
-    }
-
-    if(user.emailConfirmed == true) {
-        return res.status(200).json({
-            status: "OK",
-            message: "Email already confirmed."
-        })
-    }
-
-    const token = generateToken({ id: user.id, type: 'email' }, 1800);
-    const sended = await sendEmail({
-        from: "email-confirmation@desastrad0.com",
-        to: user.email,
-        subject: "Email Confirmation",
-        text: `http://localhost/email/confirmate?token=${token}`
-    });
-
-    if(sended.response.includes('Ok')) {
-        return res.json({
-            status: "OK",
-            message: `Confirmation email successfully resent. E-mail: '${email}'.`
+        const token = generateToken({ id: user.id, type: 'email' }, 1800);
+        const sended = await sendEmail({
+            from: "email-confirmation@desastrad0.com",
+            to: user.email,
+            subject: "Email Confirmation",
+            text: `To confirm your email click on the following link: http://localhost/email/confirm?token=${token}`
         });
-    } else {
+
+        if(sended.response.includes('Ok')) {
+            return res.json({
+                status: "OK",
+                message: `Confirmation email successfully resent. Email: '${email}'.`
+            });
+        } else {
+            return res.status(500).json({
+                status: "Internal Server Error",
+                message: `Confirmation email cannot be sent. Email: '${email}'.`
+            });
+        }
+    } catch (err) {
+        console.log(err);
         return res.status(500).json({
             status: "Internal Server Error",
-            message: `Confirmation email cannot be sent. E-mail: '${email}'.`
+            message: "An internal error occurred."
         });
     }
 });
 
-router.get('/confirmate', async function (req, res) {
+router.get('/confirm', async function (req, res) {
     try {
         const token = req.query.token;
 
@@ -162,6 +170,59 @@ router.get('/confirmate', async function (req, res) {
             return res.json({
                 status: "OK",
                 message: "Email successfully confirmed."
+            });
+        });
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({
+            status: "Internal Server Error",
+            message: "An internal error occurred."
+        });
+    }
+});
+
+router.get('/confirm-change', async function (req, res) {
+    try {
+        const token = req.query.token;
+
+        if(!token) {
+            return res.status(401).json({
+                status: "Unauthorized",
+                message: "No provided token."
+            })
+        }
+
+        jwt.verify(token, secret, async (err, jwt) => {
+            if (err) {
+                return res.status(401).json({
+                    status: "Unauthorized",
+                    message: "Invalid token."
+                })
+              }
+        
+            if (jwt.type != 'change-email') {
+                return res.status(401).json({
+                    status: "Unauthorized",
+                    message: "Invalid token."
+                })
+              }
+        
+            const _id = jwt.id;
+            const user = await User.findOne({ _id });
+
+            if(!user || jwt.email != user.email) {
+                return res.status(401).json({
+                    status: "Unauthorized",
+                    message: "Expired token."
+                })
+            }
+
+            user.email = jwt.newEmail;
+            await user.save();
+
+            return res.json({
+                status: "OK",
+                message: "Email successfully changed."
             });
         });
     } catch (err) {

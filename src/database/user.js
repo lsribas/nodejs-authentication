@@ -23,11 +23,27 @@ const UserSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    emailChangeCode: {
+        type: String,
+        select: false
+    },
+    emailChangeCodeExpiration: {
+        type: Date,
+        select: false
+    },
+    emailChangeCodeCooldown: {
+        type: Date,
+        select: false
+    },
     recoveryCode: {
         type: String,
         select: false
     },
-    recoveryExpiration: {
+    recoveryCodeExpiration: {
+        type: Date,
+        select: false
+    },
+    recoveryCodeCooldown: {
         type: Date,
         select: false
     },
