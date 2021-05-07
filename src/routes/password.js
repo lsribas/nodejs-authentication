@@ -87,7 +87,7 @@ router.post('/forgot', async function (req, res) {
         })
     }
 
-    const code = Math.floor(Math.random() * 9999).toString().padStart(4, "0");
+    const code = Math.floor(Math.random() * 999999).toString().padStart(6, "0");
     const expireDate = new Date().setMinutes(new Date().getMinutes() + 5);
     user.recoveryCode = code;
     user.recoveryExpiration = expireDate;

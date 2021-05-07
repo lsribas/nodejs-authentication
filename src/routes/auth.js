@@ -57,8 +57,6 @@ router.post('/login', async function (req, res) {
                 message: "Username or password is incorrect."
             })
         }
-
-        email = user.email;
     } else {
         user = await User.findOne({ username: identification }).select('+password');
 
@@ -68,8 +66,6 @@ router.post('/login', async function (req, res) {
                 message: "Username or password is incorrect."
             })
         }
-
-        email = emailMask(user.email);
     }
 
     if(!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/i.test(password)) {
@@ -94,8 +90,7 @@ router.post('/login', async function (req, res) {
         return res.json({
             status: "OK",
             message: "Authenticated successfully.",
-            token: token,
-            user: user
+            token: token
         });
     } else {
         return res.status(401).json({

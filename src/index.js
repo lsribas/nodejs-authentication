@@ -12,6 +12,4 @@ app.all('*', function (req, res) {
     res.sendStatus(405)
 });
 
-app.listen(80, () => {
-    console.log(`Online na porta: 80.`)
-});
+app.listen(80);
